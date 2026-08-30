@@ -253,14 +253,18 @@ async function scrapeTarget() {
       continue;
     }
 
-    let stockStatus;
-    if (isPreOrder(raw)) {
-      stockStatus = 'pre_order';
-    } else if (inStockPass.has(tcin)) {
-      stockStatus = 'in_stock';
-    } else {
-      stockStatus = 'out_of_stock';
-    }
+    const shippingStatus =
+  raw?.item?.fulfillment?.shipping_options?.availability_status ?? '';
+
+let stockStatus;
+
+if (isPreOrder(raw)) {
+  stockStatus = 'pre_order';
+} else if (shippingStatus === 'IN_STOCK') {
+  stockStatus = 'in_stock';
+} else {
+  stockStatus = 'out_of_stock';
+}
 
     products.push(normalizeProduct(raw, stockStatus));
   }

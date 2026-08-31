@@ -26,6 +26,7 @@ const { withRetry, sleep } = require('../utils/retry');
 // ── API config ─────────────────────────────────────────────────────────────────
 
 const REDSKY_BASE   = 'https://redsky.target.com/redsky_aggregations/v1/web/plp_search_v2';
+const FULFILLMENT_BASE = 'https://redsky.target.com/redsky_aggregations/v1/web/product_summary_with_fulfillment_v1';
 const REDSKY_KEY    = '9f36aeafbe60771e321a7cc95a78140772ab3e96';
 const VISITOR_ID    = '018c8d4b-a1b7-7e65-8e16-e60f2a64b4a6';
 const STORE_ID      = '1375';  // Chicago area — change if this breaks pricing lookups
@@ -108,6 +109,35 @@ async function fetchRedsky(params) {
       },
     },
   );
+}async function fetchFulfillmentByTcins(tcins) {
+  if (!tcins?.length) return [];
+
+  const res = await axios.get(
+    'https://redsky.target.com/redsky_aggregations/v1/web/product_summary_with_fulfillment_v1',
+    {
+      params: {
+        key: REDSKY_KEY,
+        tcins: tcins.join(','),
+        store_id: process.env.TARGET_STORE_ID || STORE_ID,
+        scheduled_delivery_store_id: process.env.TARGET_STORE_ID || STORE_ID,
+        required_store_id: process.env.TARGET_STORE_ID || STORE_ID,
+        zip: process.env.TARGET_ZIP || BASE_PARAMS.zip,
+        state: process.env.TARGET_STATE || BASE_PARAMS.state,
+        latitude: process.env.TARGET_LATITUDE || BASE_PARAMS.latitude,
+        longitude: process.env.TARGET_LONGITUDE || BASE_PARAMS.longitude,
+        channel: 'WEB',
+page: '/s/pokemon cards',
+        visitor_id: process.env.TARGET_VISITOR_ID,
+        paid_membership: false,
+        base_membership: true,
+        card_membership: false,
+      },
+      headers: REQUEST_HEADERS,
+      timeout: 22000,
+    }
+  );
+
+  return res.data;
 }
 
 // ── Paged fetch — returns all TCINs across pages ──────────────────────────────
@@ -235,7 +265,7 @@ async function scrapeTarget() {
   const allPass = await fetchAllTcins(false);
   if (allPass.size === 0) {
     console.warn('[Target] All-products pass returned 0 items');
-    return [];
+    throw new Error('Target search failed or was blocked; results were not updated');
   }
 
   await sleep(DELAY_MS * 2); // pause between passes
@@ -255,12 +285,13 @@ async function scrapeTarget() {
 
     const shippingStatus =
   raw?.item?.fulfillment?.shipping_options?.availability_status ?? '';
+const shippingQty = Number(raw?.item?.fulfillment?.shipping_options?.available_to_promise_quantity ?? 0);
 
 let stockStatus;
 
 if (isPreOrder(raw)) {
   stockStatus = 'pre_order';
-} else if (shippingStatus === 'IN_STOCK') {
+} else if (shippingStatus === 'IN_STOCK' && shippingQty >= 10) {
   stockStatus = 'in_stock';
 } else {
   stockStatus = 'out_of_stock';
@@ -325,4 +356,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { scrapeTarget, normalizeProduct, isSoldByTarget, isPreOrder };
+module.exports = { scrapeTarget, normalizeProduct, isSoldByTarget, isPreOrder, fetchFulfillmentByTcins };

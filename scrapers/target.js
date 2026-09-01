@@ -286,7 +286,7 @@ async function scrapeTarget() {
     const shippingStatus =
   raw?.item?.fulfillment?.shipping_options?.availability_status ?? '';
 const shippingQty = Number(raw?.item?.fulfillment?.shipping_options?.available_to_promise_quantity ?? 0);
-
+console.log(`[Target] DEBUG TCIN=${raw?.tcin ?? raw?.item?.tcin ?? '?'} shipping=${shippingStatus || 'UNKNOWN'} qty=${shippingQty}`);
 let stockStatus;
 
 if (isPreOrder(raw)) {

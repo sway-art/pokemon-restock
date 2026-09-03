@@ -110,7 +110,8 @@ jobs:
           if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
             FLAGS="$FLAGS --test"
           fi
-          node monitor.js $FLAGS
+          set -o pipefail
+          node monitor.js $FLAGS 2>&1 | tee monitor log
 
       - name: Commit updated data files
         if: ${{ github.event.inputs.dry_run != 'true' }}
@@ -149,6 +150,27 @@ jobs:
           echo "| Channels | \`${{ vars.NOTIFY_CHANNELS || 'discord' }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Job status | \`${{ job.status }}\` |" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Notify Discord of scraper issues
+        if: always()
+        run: |
+          ISSUES=$(grep -E 'failed -|403: Forebidden|bot check may have triggered|timeout of 30000ms exceeded' monitor.log | tail -n 12 || true)
+          if [[ -z "$ISSUES" ]]; then
+            exit 0
+          fi
+          HOUR=$(date -u +%H)
+          MINUTE=$(date -u +%M)
+          if (( 10#$HOUR % 6 !=0 || 10#$MINUTE >= 30 )); then
+            exit 0
+          fi
+          PAYLOAD=$(jq -n \
+            --arg title "Pokemon TCG Monitor - scraper issue" \
+            --arg desc "One or more retailer scrapers had problems during run #${{ github.run_number }}." \
+            --arg issues "$ISSUES" \
+            '{embeds:[{title:$title,description:$desc,fields:[{name:"Dectected issues",value:$issues}],color:16753920}]}')
+          curl -s -o /dev/null \
+            -H "content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$DISCORD_WEBHOOK_URL" || true
       - name: Notify Discord on failure
         if: failure()
         run: |

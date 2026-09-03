@@ -111,7 +111,7 @@ jobs:
             FLAGS="$FLAGS --test"
           fi
           set -o pipefail
-          node monitor.js $FLAGS 2>&1 | tee monitor log
+          node monitor.js $FLAGS 2>&1 | tee "$RUNNER_TEMP/monitor.log"
 
       - name: Commit updated data files
         if: ${{ github.event.inputs.dry_run != 'true' }}
@@ -153,7 +153,7 @@ jobs:
       - name: Notify Discord of scraper issues
         if: always()
         run: |
-          ISSUES=$(grep -E 'failed -|403: Forebidden|bot check may have triggered|timeout of 30000ms exceeded' monitor.log | tail -n 12 || true)
+          ISSUES=$(grep -E 'failed -|403: Forebidden|bot check may have triggered|timeout of 30000ms exceeded' "$RUNNER_TEMP/monitor.log" | tail -n 12 || true)
           if [[ -z "$ISSUES" ]]; then
             exit 0
           fi

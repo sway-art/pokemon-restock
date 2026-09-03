@@ -154,6 +154,7 @@ jobs:
         if: always()
         run: |
           ISSUES=$(grep -E 'failed -|403: Forebidden|bot check may have triggered|timeout of 30000ms exceeded' "$RUNNER_TEMP/monitor.log" | tail -n 12 || true)
+          echo "DEBUG issues=$ISSUES"
           if [[ -z "$ISSUES" ]]; then
             exit 0
           fi

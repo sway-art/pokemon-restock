@@ -158,6 +158,7 @@ jobs:
             exit 0
           fi
           HOUR=$(date -u +%H)
+          echo "DEBUG event=${{ github.event_name }} hour=$HOUR"
           MINUTE=$(date -u +%M)
           if [[ "${{ github.event_name }}" != "workflow_dispatch" ]] && (( 10#$HOUR % 6 !=0 || 10#$MINUTE >= 30 )); then
             exit 0

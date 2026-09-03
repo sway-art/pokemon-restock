@@ -93,6 +93,13 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline
 
+      - name: Test Discord webhook
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.test_discord == 'true' }}
+        run: |
+          curl -f -H "Content-Type: application/json" \
+            -d '{"content":"Pokemon Restock Monitor Discord test successful!"}' \
+            "$DISCORD_WEBHOOK_URL"
+
       - name: Run monitor
         id: monitor
         run: |

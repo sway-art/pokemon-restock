@@ -159,7 +159,7 @@ jobs:
           fi
           HOUR=$(date -u +%H)
           MINUTE=$(date -u +%M)
-          if (( 10#$HOUR % 6 !=0 || 10#$MINUTE >= 30 )); then
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]] && (( 10#$HOUR % 6 !=0 || 10#$MINUTE >= 30 )); then
             exit 0
           fi
           PAYLOAD=$(jq -n \

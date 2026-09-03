@@ -13,6 +13,10 @@ on:
         description: 'Dry run (scrape + compare, skip notifications and state write)'
         type: boolean
         default: false
+      test_discord:
+        description: 'Send a test message to Discord'
+        type: boolean
+        default: false
 
 concurrency:
   group: monitor
